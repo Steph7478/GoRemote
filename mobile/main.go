@@ -10,6 +10,12 @@ import (
 func main() {
 	a := app.New()
 	w := a.NewWindow("Remote Control")
+
+	icon, err := fyne.LoadResourceFromPath("assets/icon.png")
+	if err == nil {
+		w.SetIcon(icon)
+	}
+
 	w.Resize(fyne.NewSize(400, 650))
 
 	screen := ui.NewMainScreen(w)
