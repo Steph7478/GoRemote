@@ -25,6 +25,19 @@ func NewMainScreen(window fyne.Window) *MainScreen {
 func (s *MainScreen) Build() fyne.CanvasObject {
 	s.ipEntry = widget.NewEntry()
 	s.ipEntry.SetPlaceHolder("PC IP (ex: 192.168.18.32)")
+
+	if data := loadSettings(); data.LastIP != "" {
+		s.ipEntry.SetText(data.LastIP)
+	}
+
+	s.ipEntry.OnChanged = func(ip string) {
+		if ip != "" {
+			settings := loadSettings()
+			settings.LastIP = ip
+			saveSettings(settings)
+		}
+	}
+
 	s.status = widget.NewLabel("🔴 Disconnected")
 
 	s.connectBtn = widget.NewButton("Connect", s.onConnect)
@@ -67,14 +80,17 @@ func (s *MainScreen) onConnect() {
 	if s.client != nil {
 		s.client.Close()
 	}
-	s.client = client.NewClient(s.ipEntry.Text)
+
+	ip := s.ipEntry.Text
+	s.client = client.NewClient(ip)
 	if err := s.client.Connect(); err != nil {
 		s.status.SetText("❌ Failed")
 		return
 	}
 
-	if data := loadSettings(); data.MouseSpeed != 1.0 {
-		s.client.SetSensitivity(data.MouseSpeed)
+	settings := loadSettings()
+	if settings.MouseSpeed != 1.0 {
+		s.client.SetSensitivity(settings.MouseSpeed)
 	}
 
 	s.status.SetText("✅ Connected")

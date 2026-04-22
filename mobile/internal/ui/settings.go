@@ -14,13 +14,14 @@ import (
 
 type SettingsData struct {
 	MouseSpeed float64 `json:"mouse_speed"`
+	LastIP     string  `json:"last_ip"`
 }
 
 func loadSettings() SettingsData {
 	var data SettingsData
 	file, err := os.Open("settings.json")
 	if err != nil {
-		return SettingsData{MouseSpeed: 1.0}
+		return SettingsData{MouseSpeed: 1.0, LastIP: ""}
 	}
 	defer file.Close()
 	json.NewDecoder(file).Decode(&data)
@@ -43,7 +44,9 @@ func CreateSettings(c *client.Client) *fyne.Container {
 
 	slider.OnChanged = func(v float64) {
 		label.SetText("Speed: " + strconv.FormatFloat(v, 'f', 2, 64))
-		saveSettings(SettingsData{MouseSpeed: v})
+		settings := loadSettings()
+		settings.MouseSpeed = v
+		saveSettings(settings)
 		if c != nil {
 			c.SetSensitivity(v)
 		}
