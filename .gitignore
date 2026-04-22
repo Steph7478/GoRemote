@@ -1,0 +1,41 @@
+# Binários
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylibs
+server
+app
+app.exe
+
+# Arquivos de teste
+*.test
+*.out
+
+# Dependências
+vendor/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Configurações locais
+settings.json
+
+# Go workspace
+go.work
+go.work.sum
+
+# Temp
+tmp/
+temp/
