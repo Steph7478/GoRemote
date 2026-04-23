@@ -4,7 +4,8 @@
 *.dll
 *.so
 *.dylibs
-server
+Remote-Control*
+Remote-Server*
 app
 app.exe
 

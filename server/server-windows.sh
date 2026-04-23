@@ -4,8 +4,6 @@ echo "🚀 Starting Remote Control Server..."
 echo ""
 
 echo "📦 Compiling server..."
-go build -o server main.go
+go build -o Remote-Server.exe main.go
 echo "✅ Server compiled!"
 echo ""
-
-./server
