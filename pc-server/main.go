@@ -29,7 +29,7 @@ func server() {
 func tray() {
 	ip := utils.GetLocalIP()
 	
-	iconData, err := os.ReadFile("assets/icon.png")
+	iconData, err := os.ReadFile("assets/icon.ico")
 	if err == nil {
 		systray.SetIcon(iconData)
 	}
