@@ -1,19 +1,16 @@
 #!/bin/bash
 
-echo "🍎 Building iOS app with fyne-cross..."
-echo "======================================"
+echo "🍎 Building iOS app..."
+echo "====================="
 echo ""
 
-go run github.com/fyne-io/fyne-cross@latest ios \
+go mod tidy
+go install fyne.io/tools/cmd/fyne@latest
+~/go/bin/fyne package -os ios/arm64 \
     -app-id com.remotecontrol.app \
     -icon assets/icon.png \
-    -name "Remote Control" \
-    -app-version 1.0.0 \
-    -app-build 1 \
-    -release \
-    -arch arm64 \
-    -ldflags="-s -w"
+    -name "Remote Control"
 
 echo ""
-echo "✅ iOS app ready!"
-find fyne-cross/dist -name "*.app" -type d | head -1 | xargs ls -ld
+echo "✅ Done!"
+ls -lh *.app
