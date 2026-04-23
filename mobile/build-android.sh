@@ -5,13 +5,11 @@ echo "========================"
 echo ""
 
 go mod tidy
-go install fyne.io/fyne/v2/cmd/fyne@latest
-~/go/bin/fyne package -os android \
-    -appID com.remotecontrol.app \
+go install fyne.io/tools/cmd/fyne@latest
+~/go/bin/fyne package -os android/arm64 \
+    -app-id com.remotecontrol.app \
     -icon assets/icon.png \
-    -name "Remote Control" \
-    -appVersion 1.0.0 \
-    -arch arm64
+    -name "Remote Control"
 
 echo ""
 echo "✅ Done!"
