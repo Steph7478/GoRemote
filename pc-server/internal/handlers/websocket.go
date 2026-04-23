@@ -11,10 +11,13 @@ import (
 var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
 
 var wsHandlers = map[string]func(models.WSMessage){
-	"move":  func(m models.WSMessage) { robot.Move(m.X, m.Y) },
+	"move": func(m models.WSMessage) { robot.Move(m.X, m.Y) },
+
 	"click": func(m models.WSMessage) { robot.Click() },
-	"key":   func(m models.WSMessage) { robot.Press(m.Key) },
-	"type":  func(m models.WSMessage) { robot.Type(m.Text) },
+
+	"key": func(m models.WSMessage) { robot.Press(m.Key) },
+
+	"type": func(m models.WSMessage) { robot.Type(m.Text) },
 }
 
 func WebSocket(c *gin.Context) {
