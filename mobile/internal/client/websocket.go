@@ -53,7 +53,7 @@ func DiscoverServer() (string, error) {
 		Limit:     1,
 		Delay:     time.Second * 1,
 		TimeLimit: time.Second * 5,
-		AllowSelf: true,
+		AllowSelf: false,
 	})
 	if err != nil {
 		return "", err
