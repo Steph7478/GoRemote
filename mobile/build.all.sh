@@ -8,7 +8,9 @@ echo ""
 echo ""
 ./build-ios.sh
 echo ""
-./build-desktop.sh
+./build-windows.sh
+echo ""
+./build-linux.sh
 
 echo ""
 echo "🎉 All builds complete!"
