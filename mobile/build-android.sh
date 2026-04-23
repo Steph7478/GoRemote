@@ -13,4 +13,4 @@ go run github.com/fyne-io/fyne-cross@latest android \
 
 echo ""
 echo "✅ Android APK ready!"
-ls -lh fyne-cross/bin/*.apk
+ls -lh fyne-cross/dist/android/*.apk

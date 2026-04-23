@@ -13,4 +13,4 @@ go run github.com/fyne-io/fyne-cross@latest ios \
 
 echo ""
 echo "✅ iOS app ready!"
-ls -lh fyne-cross/bin/*.app
+ls -lh fyne-cross/dist/ios/*.app
