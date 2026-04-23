@@ -12,9 +12,9 @@ import (
 
 type MousePad struct {
 	widget.BaseWidget
-	client *client.Client
-	lastX  float32
-	lastY  float32
+	client   *client.Client
+	last     fyne.Position
+	dragging bool
 }
 
 func NewMousePad(client *client.Client) *MousePad {
@@ -24,29 +24,36 @@ func NewMousePad(client *client.Client) *MousePad {
 }
 
 func (m *MousePad) CreateRenderer() fyne.WidgetRenderer {
-	rect := canvas.NewRectangle(color.NRGBA{R: 50, G: 50, B: 50, A: 255})
-	label := canvas.NewText("TOUCHPAD", color.White)
-	label.TextSize = 16
-	label.Alignment = fyne.TextAlignCenter
-
-	return &mousePadRenderer{rect: rect, label: label}
+	return &mousePadRenderer{
+		rect:  canvas.NewRectangle(color.NRGBA{R: 50, G: 50, B: 50, A: 255}),
+		label: canvas.NewText("TOUCHPAD", color.White),
+	}
 }
 
 func (m *MousePad) Dragged(e *fyne.DragEvent) {
-	dx := e.Position.X - m.lastX
-	dy := e.Position.Y - m.lastY
-
-	if dx != 0 || dy != 0 {
-		m.client.Send(models.WSMessage{Event: "move", X: float64(dx), Y: float64(dy)})
+	if !m.dragging {
+		m.dragging = true
+		m.last = e.Position
+		return
 	}
 
-	m.lastX = e.Position.X
-	m.lastY = e.Position.Y
+	dx := e.Position.X - m.last.X
+	dy := e.Position.Y - m.last.Y
+
+	if dx != 0 || dy != 0 {
+		m.client.Send(models.WSMessage{
+			Event: "move",
+			X:     float64(dx),
+			Y:     float64(dy),
+		})
+	}
+
+	m.last = e.Position
 }
 
 func (m *MousePad) DragEnd() {
-	m.lastX = 0
-	m.lastY = 0
+	m.dragging = false
+	m.last = fyne.Position{}
 }
 
 func (m *MousePad) Tapped(e *fyne.PointEvent) {
@@ -60,12 +67,17 @@ type mousePadRenderer struct {
 
 func (r *mousePadRenderer) Layout(size fyne.Size) {
 	r.rect.Resize(size)
-	r.label.Resize(fyne.NewSize(size.Width, 30))
-	r.label.Move(fyne.NewPos(0, size.Height/2-15))
+
+	labelSize := r.label.MinSize()
+	r.label.Resize(labelSize)
+	r.label.Move(fyne.NewPos(
+		(size.Width-labelSize.Width)/2,
+		(size.Height-labelSize.Height)/2,
+	))
 }
 
 func (r *mousePadRenderer) MinSize() fyne.Size {
-	return fyne.Size{Width: 0, Height: 0}
+	return fyne.NewSize(100, 100)
 }
 
 func (r *mousePadRenderer) Refresh() {
