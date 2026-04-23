@@ -9,7 +9,10 @@ go run github.com/fyne-io/fyne-cross@latest android \
     -icon assets/icon.png \
     -name "Remote Control" \
     -app-version 1.0.0 \
-    -app-build 1
+    -app-build 1 \
+    -release \
+    -arch arm64 \
+    -ldflags="-s -w"
 
 echo ""
 echo "✅ Android APK ready!"
