@@ -5,46 +5,28 @@ import (
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/layout"
 	"fyne.io/fyne/v2/widget"
 )
 
 type MainScreen struct {
-	window fyne.Window
-	client *client.Client
-	ip     *widget.Entry
-	status *widget.Label
-	btns   struct {
-		connect    *widget.Button
-		disconnect *widget.Button
-	}
-	tabs *container.AppTabs
+	client     *client.Client
+	status     *widget.Label
+	connect    *widget.Button
+	disconnect *widget.Button
+	search     *widget.Button
+	tabs       *container.AppTabs
 }
 
-func NewMainScreen(window fyne.Window) *MainScreen {
-	return &MainScreen{window: window}
-}
+func NewMainScreen(_ fyne.Window) *MainScreen { return &MainScreen{} }
 
 func (s *MainScreen) Build() fyne.CanvasObject {
-	s.ip = widget.NewEntry()
-	s.ip.SetPlaceHolder("PC IP (ex: 192.168.18.32)")
-
-	if data := loadSettings(); data.LastIP != "" {
-		s.ip.SetText(data.LastIP)
-	}
-
-	s.ip.OnChanged = func(ip string) {
-		if ip != "" {
-			settings := loadSettings()
-			settings.LastIP = ip
-			saveSettings(settings)
-		}
-	}
-
 	s.status = widget.NewLabel("🔴 Disconnected")
-
-	s.btns.connect = widget.NewButton("Connect", s.onConnect)
-	s.btns.disconnect = widget.NewButton("Disconnect", s.onDisconnect)
-	s.btns.disconnect.Hide()
+	s.connect = widget.NewButton("Connect", s.onConnect)
+	s.disconnect = widget.NewButton("Disconnect", s.onDisconnect)
+	s.search = widget.NewButton("🔍 Search PC", s.onSearch)
+	s.connect.Hide()
+	s.disconnect.Hide()
 
 	s.tabs = container.NewAppTabs(
 		container.NewTabItem("🖱️ Mouse", s.buildMouse()),
@@ -52,65 +34,71 @@ func (s *MainScreen) Build() fyne.CanvasObject {
 		container.NewTabItem("⚙️ Settings", CreateSettings(nil)),
 	)
 
-	topBar := container.NewVBox(
-		container.NewBorder(nil, nil, nil,
-			container.NewHBox(s.btns.connect, s.btns.disconnect),
-			s.ip),
-		s.status,
-		widget.NewSeparator(),
-	)
+	return container.NewBorder(
+		container.NewVBox(
+			container.NewHBox(s.search, s.connect, s.disconnect, layout.NewSpacer(), s.status),
+			widget.NewSeparator(),
+		), nil, nil, nil, s.tabs)
+}
 
-	return container.NewBorder(topBar, nil, nil, nil, s.tabs)
+func (s *MainScreen) onSearch() {
+	s.status.SetText("⏳ Searching...")
+	s.search.Disable()
+	go func() {
+		ip, _ := client.DiscoverServer()
+		fyne.Do(func() {
+			if ip == "" {
+				s.status.SetText("❌ Not found")
+				s.search.Enable()
+				return
+			}
+			s.status.SetText("✅ Connecting...")
+			s.search.Enable()
+			s.connect.Show()
+			s.client = client.NewClient(ip)
+			if s.client.Connect() != nil {
+				s.status.SetText("❌ Failed")
+				s.connect.Hide()
+				return
+			}
+			settings := loadSettings()
+			if settings.MouseSpeed != 1.0 {
+				s.client.SetSensitivity(settings.MouseSpeed)
+			}
+			s.status.SetText("✅ Connected")
+			s.connect.Hide()
+			s.disconnect.Show()
+			s.search.Hide()
+			s.updateTabs()
+		})
+	}()
 }
 
 func (s *MainScreen) buildMouse() fyne.CanvasObject {
 	if s.client == nil {
-		return container.NewCenter(widget.NewLabel("Connect first"))
+		return container.NewCenter(widget.NewLabel("Click Search PC"))
 	}
-	return container.NewMax(NewMousePad(s.client))
+	return container.NewStack(NewMousePad(s.client))
 }
 
 func (s *MainScreen) buildKeyboard() fyne.CanvasObject {
 	if s.client == nil {
-		return container.NewCenter(widget.NewLabel("Connect first"))
+		return container.NewCenter(widget.NewLabel("Click Search PC"))
 	}
 	return CreateKeyboard(s.client)
 }
 
-func (s *MainScreen) onConnect() {
-	s.closeClient()
-
-	ip := s.ip.Text
-	s.client = client.NewClient(ip)
-
-	if err := s.client.Connect(); err != nil {
-		s.status.SetText("❌ Failed")
-		return
-	}
-
-	if settings := loadSettings(); settings.MouseSpeed != 1.0 {
-		s.client.SetSensitivity(settings.MouseSpeed)
-	}
-
-	s.status.SetText("✅ Connected")
-	s.btns.connect.Hide()
-	s.btns.disconnect.Show()
-	s.updateTabs()
-}
-
+func (s *MainScreen) onConnect() { s.onSearch() }
 func (s *MainScreen) onDisconnect() {
-	s.closeClient()
-	s.status.SetText("🔴 Disconnected")
-	s.btns.disconnect.Hide()
-	s.btns.connect.Show()
-	s.updateTabs()
-}
-
-func (s *MainScreen) closeClient() {
 	if s.client != nil {
 		s.client.Close()
 		s.client = nil
 	}
+	s.status.SetText("🔴 Disconnected")
+	s.disconnect.Hide()
+	s.connect.Hide()
+	s.search.Show()
+	s.updateTabs()
 }
 
 func (s *MainScreen) updateTabs() {

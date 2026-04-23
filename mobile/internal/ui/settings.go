@@ -13,7 +13,6 @@ import (
 
 type SettingsData struct {
 	MouseSpeed float64 `json:"mouse_speed"`
-	LastIP     string  `json:"last_ip"`
 }
 
 func loadSettings() SettingsData {
@@ -35,13 +34,13 @@ func saveSettings(data SettingsData) {
 
 func CreateSettings(c *client.Client) *fyne.Container {
 	settings := loadSettings()
-	
+
 	slider := widget.NewSlider(0.5, 3.0)
 	slider.SetValue(settings.MouseSpeed)
 	slider.Step = 0.1
-	
+
 	speedLabel := widget.NewLabel("Speed: " + formatFloat(settings.MouseSpeed))
-	
+
 	slider.OnChanged = func(v float64) {
 		speedLabel.SetText("Speed: " + formatFloat(v))
 		saveSettings(SettingsData{MouseSpeed: v})
@@ -49,7 +48,7 @@ func CreateSettings(c *client.Client) *fyne.Container {
 			c.SetSensitivity(v)
 		}
 	}
-	
+
 	return container.NewVBox(
 		widget.NewLabel("⚙️ Settings"),
 		widget.NewSeparator(),

@@ -3,8 +3,11 @@ package client
 import (
 	"mobile/internal/models"
 	"net/url"
+	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/schollz/peerdiscovery"
 )
 
 type Client struct {
@@ -43,4 +46,33 @@ func (c *Client) Close() {
 	if c.conn != nil {
 		c.conn.Close()
 	}
+}
+
+func DiscoverServer() (string, error) {
+	discoveries, err := peerdiscovery.Discover(peerdiscovery.Settings{
+		Limit:     1,
+		Delay:     time.Second * 1,
+		TimeLimit: time.Second * 5,
+		AllowSelf: true,
+	})
+	if err != nil {
+		return "", err
+	}
+
+	for _, d := range discoveries {
+		payload := string(d.Payload)
+
+		if strings.Contains(payload, "RemoteControl:") {
+			parts := strings.SplitN(payload, ":", 2)
+			if len(parts) == 2 {
+				return parts[1], nil
+			}
+		}
+
+		if d.Address != "" {
+			return d.Address, nil
+		}
+	}
+
+	return "", nil
 }
