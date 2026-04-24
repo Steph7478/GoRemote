@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"server/internal/routes"
 	"server/internal/utils"
@@ -22,65 +23,53 @@ func startServer() {
 	go startDiscovery()
 	r := gin.New()
 	r.Use(gin.Recovery())
-
-	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.0.0/16"})
+	r.SetTrustedProxies([]string{"127.0.0.1", "192.168.0.0/16", "10.0.0.0/8"})
 	routes.Setup(r)
-
-	fmt.Println("✅ Server running on port 8080")
-
-	if err := r.Run("0.0.0.0:8080"); err != nil {
-		fmt.Printf("❌ Server error: %v\n", err)
-	}
+	r.Run("0.0.0.0:8080")
 }
 
 func startDiscovery() {
 	ip := utils.GetLocalIP()
 	payload := []byte(fmt.Sprintf("RemoteControl:%s", ip))
-
 	for {
-		_, err := peerdiscovery.Discover(peerdiscovery.Settings{
-			Payload:   payload,
-			Limit:     1,
-			Delay:     time.Second * 2,
-			TimeLimit: 0,
-			AllowSelf: false,
-		})
-
-		if err != nil {
-			fmt.Printf("❌ Discovery error: %v\n", err)
-			time.Sleep(time.Second * 5)
-			continue
-		}
-
+		peerdiscovery.Discover(peerdiscovery.Settings{Payload: payload, Limit: 1, Delay: time.Second * 2, AllowSelf: true})
 		time.Sleep(time.Second * 2)
 	}
 }
 
 func tray() {
 	ip := utils.GetLocalIP()
+	if icon, _ := os.ReadFile("assets/icon.ico"); icon != nil {
+		systray.SetIcon(icon)
+	}
+	systray.SetTitle("Remote Control")
+	systray.SetTooltip(fmt.Sprintf("%s:8080", ip))
 
-	iconData, err := os.ReadFile("assets/icon.ico")
-	if err == nil {
-		systray.SetIcon(iconData)
+	makeItem := func(t string, d bool) *systray.MenuItem {
+		item := systray.AddMenuItem(t, "")
+		if d {
+			item.Disable()
+		}
+		return item
 	}
 
-	systray.SetTitle("Remote Control")
-	systray.SetTooltip(fmt.Sprintf("Remote Control Server\nIP: %s\nPort: 8080", ip))
-
-	ipItem := systray.AddMenuItem(fmt.Sprintf("📡 IP: %s", ip), "Server IP address")
-	ipItem.Disable()
-
-	portItem := systray.AddMenuItem("🔌 Port: 8080", "Server port")
-	portItem.Disable()
-
-	statusItem := systray.AddMenuItem("🟢 Running", "Server status")
-	statusItem.Disable()
-
+	makeItem(fmt.Sprintf("📡 %s:8080", ip), true)
+	makeItem("🔌 Port: 8080", true)
+	makeItem("🟢 Running", true)
 	systray.AddSeparator()
 
-	quitItem := systray.AddMenuItem("❌ Quit", "Close server")
+	if ip != "" && ip != "127.0.0.1" {
+		if _, err := net.DialTimeout("tcp", fmt.Sprintf("%s:8080", ip), 500*time.Millisecond); err != nil {
+			warn := makeItem("⚠️ Firewall", false)
+			go func() {
+				<-warn.ClickedCh
+				fmt.Println("\nRun: netsh advfirewall firewall add rule name=\"RemoteControl\" dir=in action=allow protocol=tcp localport=8080")
+			}()
+			systray.AddSeparator()
+		}
+	}
 
-	<-quitItem.ClickedCh
-	fmt.Println("🛑 Shutting down...")
+	quit := makeItem("❌ Quit", false)
+	<-quit.ClickedCh
 	systray.Quit()
 }

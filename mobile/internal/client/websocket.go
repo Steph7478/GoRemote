@@ -1,9 +1,11 @@
 package client
 
 import (
+	"errors"
 	"mobile/internal/models"
 	"net/url"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -14,46 +16,74 @@ type Client struct {
 	conn        *websocket.Conn
 	addr        string
 	sensitivity float64
+	mu          sync.Mutex
 }
 
 func NewClient(ip string) *Client {
-	return &Client{addr: ip, sensitivity: 1.0}
+	return &Client{
+		addr:        ip,
+		sensitivity: 1.0,
+	}
 }
 
 func (c *Client) SetSensitivity(v float64) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	c.sensitivity = v
 }
 
 func (c *Client) Connect() error {
-	u := url.URL{Scheme: "ws", Host: c.addr + ":8080", Path: "/ws"}
+	u := url.URL{
+		Scheme: "ws",
+		Host:   c.addr + ":8080",
+		Path:   "/ws",
+	}
+
 	conn, _, err := websocket.DefaultDialer.Dial(u.String(), nil)
 	if err != nil {
 		return err
 	}
+
+	c.mu.Lock()
 	c.conn = conn
+	c.mu.Unlock()
+
 	return nil
 }
 
 func (c *Client) Send(msg models.WSMessage) error {
-	if msg.Event == "move" && c.sensitivity != 1.0 {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn == nil {
+		return errors.New("websocket disconnected")
+	}
+
+	if msg.Event == "move" {
 		msg.X *= c.sensitivity
 		msg.Y *= c.sensitivity
 	}
+
 	return c.conn.WriteJSON(msg)
 }
 
 func (c *Client) Close() {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
 	if c.conn != nil {
-		c.conn.Close()
+		_ = c.conn.Close()
+		c.conn = nil
 	}
 }
 
 func DiscoverServer() (string, error) {
 	discoveries, err := peerdiscovery.Discover(peerdiscovery.Settings{
 		Limit:     1,
-		Delay:     time.Second * 1,
-		TimeLimit: time.Second * 5,
-		AllowSelf: false,
+		Delay:     time.Second,
+		TimeLimit: 5 * time.Second,
+		AllowSelf: true,
 	})
 	if err != nil {
 		return "", err

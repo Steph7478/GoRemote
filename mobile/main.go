@@ -8,20 +8,12 @@ import (
 	"fyne.io/fyne/v2/app"
 )
 
-type resizeListener struct {
-	window fyne.Window
-}
-
-func (r *resizeListener) Resize(size fyne.Size) {
-	r.window.Canvas().Refresh(r.window.Content())
-}
-
 func main() {
 	a := app.New()
 	w := a.NewWindow("Remote Control")
 
-	icon, err := fyne.LoadResourceFromPath("assets/icon.png")
-	if err == nil {
+	icon, _ := fyne.LoadResourceFromPath("assets/icon.png")
+	if icon != nil {
 		w.SetIcon(icon)
 	}
 
@@ -31,7 +23,6 @@ func main() {
 		w.Resize(fyne.NewSize(400, 650))
 	}
 
-	screen := ui.NewMainScreen(w)
-	w.SetContent(screen.Build())
+	w.SetContent(ui.NewMainScreen().Build())
 	w.ShowAndRun()
 }

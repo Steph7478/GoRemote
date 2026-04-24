@@ -2,7 +2,6 @@ package ui
 
 import (
 	"image/color"
-	"mobile/internal/client"
 	"mobile/internal/models"
 
 	"fyne.io/fyne/v2"
@@ -12,81 +11,81 @@ import (
 
 type MousePad struct {
 	widget.BaseWidget
-	client   *client.Client
-	last     fyne.Position
-	dragging bool
+	sender  Sender
+	last    fyne.Position
+	screenW float64
+	screenH float64
 }
 
-func NewMousePad(client *client.Client) *MousePad {
-	m := &MousePad{client: client}
+func NewMousePad(sender Sender) *MousePad {
+	m := &MousePad{sender: sender, screenW: 1920, screenH: 1080}
 	m.ExtendBaseWidget(m)
 	return m
 }
 
-func (m *MousePad) CreateRenderer() fyne.WidgetRenderer {
-	return &mousePadRenderer{
-		rect:  canvas.NewRectangle(color.NRGBA{R: 50, G: 50, B: 50, A: 255}),
-		label: canvas.NewText("TOUCHPAD", color.White),
-	}
+func (m *MousePad) SetScreenSize(w, h float64) {
+	m.screenW = w
+	m.screenH = h
+}
+
+func (m *MousePad) SetSender(sender Sender) {
+	m.sender = sender
+	m.last = fyne.Position{}
+	m.Refresh()
 }
 
 func (m *MousePad) Dragged(e *fyne.DragEvent) {
-	if !m.dragging {
-		m.dragging = true
+	if m.sender == nil {
+		return
+	}
+	if m.last.X == 0 && m.last.Y == 0 {
 		m.last = e.Position
 		return
 	}
 
-	dx := e.Position.X - m.last.X
-	dy := e.Position.Y - m.last.Y
+	padW := float64(m.Size().Width)
+	padH := float64(m.Size().Height)
 
-	if dx != 0 || dy != 0 {
-		m.client.Send(models.WSMessage{
-			Event: "move",
-			X:     float64(dx),
-			Y:     float64(dy),
-		})
+	if padW == 0 || padH == 0 {
+		return
 	}
 
+	dx := (float64(e.Position.X-m.last.X) / padW) * m.screenW
+	dy := (float64(e.Position.Y-m.last.Y) / padH) * m.screenH
+
+	if dx != 0 || dy != 0 {
+		m.sender.Send(models.WSMessage{Event: "move", X: dx, Y: dy})
+	}
 	m.last = e.Position
 }
 
-func (m *MousePad) DragEnd() {
-	m.dragging = false
-	m.last = fyne.Position{}
+func (m *MousePad) DragEnd() { m.last = fyne.Position{} }
+
+func (m *MousePad) Tapped(*fyne.PointEvent) {
+	if m.sender != nil {
+		m.sender.Send(models.WSMessage{Event: "click"})
+	}
 }
 
-func (m *MousePad) Tapped(e *fyne.PointEvent) {
-	m.client.Send(models.WSMessage{Event: "click"})
+func (m *MousePad) CreateRenderer() fyne.WidgetRenderer {
+	rect := canvas.NewRectangle(color.NRGBA{50, 50, 50, 255})
+	return &mousePadRenderer{rect, m}
 }
 
 type mousePadRenderer struct {
-	rect  *canvas.Rectangle
-	label *canvas.Text
+	rect *canvas.Rectangle
+	m    *MousePad
 }
 
-func (r *mousePadRenderer) Layout(size fyne.Size) {
-	r.rect.Resize(size)
-
-	labelSize := r.label.MinSize()
-	r.label.Resize(labelSize)
-	r.label.Move(fyne.NewPos(
-		(size.Width-labelSize.Width)/2,
-		(size.Height-labelSize.Height)/2,
-	))
-}
-
-func (r *mousePadRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(100, 100)
-}
-
+func (r *mousePadRenderer) Layout(s fyne.Size) { r.rect.Resize(s) }
+func (r *mousePadRenderer) MinSize() fyne.Size { return fyne.NewSize(300, 300) }
 func (r *mousePadRenderer) Refresh() {
+	if r.m.sender == nil {
+		r.rect.FillColor = color.NRGBA{80, 80, 80, 255}
+	} else {
+		r.rect.FillColor = color.NRGBA{50, 50, 50, 255}
+	}
 	r.rect.Refresh()
-	r.label.Refresh()
 }
-
-func (r *mousePadRenderer) Objects() []fyne.CanvasObject {
-	return []fyne.CanvasObject{r.rect, r.label}
-}
-
-func (r *mousePadRenderer) Destroy() {}
+func (r *mousePadRenderer) Objects() []fyne.CanvasObject { return []fyne.CanvasObject{r.rect} }
+func (r *mousePadRenderer) Destroy()                     {}
