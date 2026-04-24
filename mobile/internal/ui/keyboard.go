@@ -34,24 +34,17 @@ func NewKeyboard(sender Sender) *Keyboard {
 	return k
 }
 
-func (k *Keyboard) TypedRune(r rune) {
-	if k.sender != nil {
-		k.SetText(k.Text + string(r))
-	}
-}
-
 func (k *Keyboard) TypedKey(ev *fyne.KeyEvent) {
 	if k.sender == nil {
 		return
 	}
 
 	switch ev.Name {
-	case fyne.KeyBackspace:
-		k.key("backspace")
-	case fyne.KeyDelete:
-		k.key("delete")
 	case fyne.KeyReturn, fyne.KeyEnter:
 		k.enter()
+
+	default:
+		k.Entry.TypedKey(ev)
 	}
 }
 
