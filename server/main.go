@@ -32,7 +32,7 @@ func startDiscovery() {
 	ip := utils.GetLocalIP()
 	payload := []byte(fmt.Sprintf("RemoteControl:%s", ip))
 	for {
-		peerdiscovery.Discover(peerdiscovery.Settings{Payload: payload, Limit: 1, Delay: time.Second * 2, AllowSelf: true})
+		peerdiscovery.Discover(peerdiscovery.Settings{Payload: payload, Limit: 1, Delay: time.Second * 2, AllowSelf: false})
 		time.Sleep(time.Second * 2)
 	}
 }
