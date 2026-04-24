@@ -84,8 +84,8 @@ func (s *MainScreen) Build() fyne.CanvasObject {
 
 	keyboardRow := container.NewBorder(
 		nil, nil,
+		nil,
 		container.NewHBox(s.keyboard.BtnDelete, s.keyboard.BtnEnter),
-		container.NewHBox(s.keyboard.BtnSend),
 		s.keyboard,
 	)
 
