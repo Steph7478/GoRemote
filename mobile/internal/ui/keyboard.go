@@ -24,22 +24,20 @@ func NewKeyboard(sender Sender) *Keyboard {
 	}
 
 	k.BtnDelete = widget.NewButton("Del", func() {
-		k.backspace()
+		k.key("backspace")
 	})
 
 	k.BtnEnter = widget.NewButton("Enter", func() {
-		k.sendText()
+		k.enter()
 	})
 
 	return k
 }
 
 func (k *Keyboard) TypedRune(r rune) {
-	if k.sender == nil {
-		return
+	if k.sender != nil {
+		k.SetText(k.Text + string(r))
 	}
-
-	k.SetText(k.Text + string(r))
 }
 
 func (k *Keyboard) TypedKey(ev *fyne.KeyEvent) {
@@ -49,31 +47,38 @@ func (k *Keyboard) TypedKey(ev *fyne.KeyEvent) {
 
 	switch ev.Name {
 	case fyne.KeyBackspace:
-		k.backspace()
-
+		k.key("backspace")
+	case fyne.KeyDelete:
+		k.key("delete")
 	case fyne.KeyReturn, fyne.KeyEnter:
-		k.sendText()
+		k.enter()
 	}
 }
 
-func (k *Keyboard) backspace() {
-	if k.sender == nil || k.Text == "" {
+func (k *Keyboard) enter() {
+	if k.sender == nil {
 		return
 	}
 
-	runes := []rune(k.Text)
-	k.SetText(string(runes[:len(runes)-1]))
+	if k.Text != "" {
+		k.sender.Send(models.WSMessage{
+			Event: "type",
+			Text:  k.Text,
+		})
+		k.SetText("")
+		return
+	}
+
+	k.key("enter")
 }
 
-func (k *Keyboard) sendText() {
-	if k.sender == nil || k.Text == "" {
+func (k *Keyboard) key(key string) {
+	if k.sender == nil {
 		return
 	}
 
 	k.sender.Send(models.WSMessage{
-		Event: "type",
-		Text:  k.Text,
+		Event: "key",
+		Key:   key,
 	})
-
-	k.SetText("")
 }
