@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/schollz/peerdiscovery"
+	"github.com/sqweek/dialog"
 )
 
 var found bool
@@ -29,9 +30,12 @@ func startDiscovery() {
 		found = found && serverRunning
 
 		if !found && len(peers) > 0 {
-			fmt.Println("📡 Device connected:", peers[0].Address)
-			found = true
-			openServerPort()
+			if dialog.Message("Device trying to connect:\n%s", peers[0].Address).
+				Title("Remote Control").
+				YesNo() {
+				found = true
+				openServerPort()
+			}
 		}
 
 		time.Sleep(2 * time.Second)
