@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"server/internal/utils"
 	"time"
 
 	"github.com/schollz/peerdiscovery"
@@ -12,7 +10,7 @@ import (
 var found bool
 
 func startDiscovery() {
-	payload := []byte(fmt.Sprintf("RemoteControl:%s", utils.GetLocalIP()))
+	payload := []byte("RemoteControl")
 
 	for {
 		if !discoveryRunning {
@@ -30,7 +28,7 @@ func startDiscovery() {
 		found = found && serverRunning
 
 		if !found && len(peers) > 0 {
-			if dialog.Message("Device trying to connect:\n%s", peers[0].Address).
+			if dialog.Message("A device is trying to connect.").
 				Title("Remote Control").
 				YesNo() {
 				found = true

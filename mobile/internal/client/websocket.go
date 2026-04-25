@@ -4,7 +4,6 @@ import (
 	"errors"
 	"mobile/internal/models"
 	"net/url"
-	"strings"
 	"sync"
 	"time"
 
@@ -90,16 +89,7 @@ func DiscoverServer() (string, error) {
 	}
 
 	for _, d := range discoveries {
-		payload := string(d.Payload)
-
-		if strings.Contains(payload, "RemoteControl:") {
-			parts := strings.SplitN(payload, ":", 2)
-			if len(parts) == 2 {
-				return parts[1], nil
-			}
-		}
-
-		if d.Address != "" {
+		if string(d.Payload) == "RemoteControl" && d.Address != "" {
 			return d.Address, nil
 		}
 	}

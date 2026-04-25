@@ -17,7 +17,7 @@ type Keyboard struct {
 func NewKeyboard(sender Sender) *Keyboard {
 	k := &Keyboard{sender: sender}
 	k.ExtendBaseWidget(k)
-	k.SetPlaceHolder("Type...")
+	k.SetPlaceHolder("Type here, send to PC")
 
 	if sender == nil {
 		k.Disable()
