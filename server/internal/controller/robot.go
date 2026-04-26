@@ -9,7 +9,8 @@ type Robot struct{}
 func New() *Robot { return &Robot{} }
 
 func (r *Robot) Move(x, y float64)  { robotgo.MoveRelative(int(x), int(y)) }
-func (r *Robot) Click()             { robotgo.Click("left") }
+func (r *Robot) LeftClick()             { robotgo.Click("left") }
+func (r *Robot) RightClick()        { robotgo.Click("right") }
 func (r *Robot) MouseDown()         { robotgo.MouseDown("left") }
 func (r *Robot) MouseUp()           { robotgo.MouseUp("left") }
 func (r *Robot) Press(key string)   { robotgo.KeyTap(key) }

@@ -13,7 +13,9 @@ var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { retu
 var wsHandlers = map[string]func(models.WSMessage){
 	"move": func(m models.WSMessage) { robot.Move(m.X, m.Y) },
 
-	"click": func(m models.WSMessage) { robot.Click() },
+	"left_click": func(m models.WSMessage) { robot.LeftClick() },
+
+	"right_click": func(m models.WSMessage) { robot.RightClick() },
 
 	"scroll": func(m models.WSMessage) { robot.Scroll(int(m.X), int(m.Y)) },
 

@@ -21,7 +21,7 @@ func MouseMove(c *gin.Context) {
 }
 
 func MouseClick(c *gin.Context) {
-	robot.Click()
+	robot.LeftClick()
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 
