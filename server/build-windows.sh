@@ -3,7 +3,7 @@
 go build -ldflags="-H windowsgui" -o RemoteControl.exe main.go
 
 curl -s -L -o rcedit.exe https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
-./rcedit.exe RemoteControl.exe --set-icon assets/icon.ico
+./rcedit.exe RemoteControl.exe --set-icon config/assets/icon.ico
 
 cat > install.bat << 'EOF'
 @echo off
@@ -17,18 +17,31 @@ if %errorLevel% neq 0 (
 
 echo Installing Remote Control...
 
-:: Get the full path where the EXE will be
-set "APP_PATH=%ProgramFiles%\RemoteControl\RemoteControl.exe"
+:: Get the CURRENT directory (where the user extracted the files)
+set "APP_PATH=%CD%\RemoteControl.exe"
 
-:: Create rules for both port AND program
-echo Adding firewall rule for port 8080...
-netsh advfirewall firewall add rule name="Remote Control - Port" dir=in action=allow protocol=TCP localport=8080
+:: Check if rule already exists for this specific app
+netsh advfirewall firewall show rule name="Remote Control" >nul 2>&1
+if %errorLevel% equ 0 (
+    echo Firewall rule already exists for Remote Control!
+    echo No changes made.
+    timeout /t 3
+    exit /b
+)
 
-echo Adding firewall rule for the application...
-netsh advfirewall firewall add rule name="Remote Control - App" dir=in action=allow program="%APP_PATH%" enable=yes
+:: Add firewall rule for the application (this is enough!)
+echo Adding firewall rule for Remote Control...
+netsh advfirewall firewall add rule name="Remote Control" dir=in action=allow program="%APP_PATH%" enable=yes
 
-echo.
-echo ✅ Firewall rules added successfully!
+if %errorLevel% equ 0 (
+    echo.
+    echo ✅ Firewall rule added successfully!
+    echo    Program: %APP_PATH%
+) else (
+    echo.
+    echo ❌ Failed to add firewall rule
+)
+
 echo.
 echo Installation complete!
 timeout /t 3
@@ -44,15 +57,23 @@ if %errorLevel% neq 0 (
     exit /b
 )
 
-echo Removing Remote Control firewall rules...
+echo Removing Remote Control firewall rule...
 
-netsh advfirewall firewall delete rule name="Remote Control - Port"
-netsh advfirewall firewall delete rule name="Remote Control - App"
+:: Check if rule exists before removing
+netsh advfirewall firewall show rule name="Remote Control" >nul 2>&1
+if %errorLevel% neq 0 (
+    echo Firewall rule not found!
+    echo Nothing to remove.
+    timeout /t 3
+    exit /b
+)
 
-echo ✅ Firewall rules removed!
-echo.
-echo Uninstallation complete!
+:: Remove firewall rule
+netsh advfirewall firewall delete rule name="Remote Control"
+
+echo ✅ Firewall rule removed successfully!
 timeout /t 3
 EOF
 
 rm -f rcedit.exe
+echo "Build complete!"
