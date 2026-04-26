@@ -22,6 +22,10 @@ type MainScreen struct {
 	keyboard   *Keyboard
 	speedValue float64
 	speedLabel *widget.Label
+	moveBtn    *widget.Button
+	dragBtn    *widget.Button
+	scrollBtn  *widget.Button
+	modeLabel  *widget.Label
 }
 
 func NewMainScreen() *MainScreen {
@@ -37,6 +41,36 @@ func (s *MainScreen) Build() fyne.CanvasObject {
 	s.connect = widget.NewButton("Connect", s.connectToServer)
 	s.disconnect = widget.NewButton("Disconnect", s.disconnectFromServer)
 	s.disconnect.Hide()
+
+	s.modeLabel = widget.NewLabelWithStyle(
+		"Mode: 🖱️ Move",
+		fyne.TextAlignCenter,
+		fyne.TextStyle{Bold: true},
+	)
+
+	s.moveBtn = widget.NewButton("🖱️ Move", func() {
+		s.mouse.SetMode("move")
+		s.updateModeUI("move")
+	})
+	s.moveBtn.Importance = widget.HighImportance
+
+	s.dragBtn = widget.NewButton("👆 Select", func() {
+		s.mouse.SetMode("drag")
+		s.updateModeUI("drag")
+	})
+
+	s.scrollBtn = widget.NewButton("📜 Scroll", func() {
+		s.mouse.SetMode("scroll")
+		s.updateModeUI("scroll")
+	})
+
+	modeButtons := container.NewCenter(container.NewHBox(
+		s.modeLabel,
+		layout.NewSpacer(),
+		s.moveBtn,
+		s.dragBtn,
+		s.scrollBtn,
+	))
 
 	s.speedLabel = widget.NewLabelWithStyle(
 		fmt.Sprintf("%.1f", s.speedValue),
@@ -95,6 +129,7 @@ func (s *MainScreen) Build() fyne.CanvasObject {
 			keyboardRow,
 			widget.NewSeparator(),
 			widget.NewLabelWithStyle("🖱️ MOUSE PAD", fyne.TextAlignCenter, fyne.TextStyle{Bold: true}),
+			modeButtons,
 		),
 		nil, nil, nil,
 		s.mouse,
@@ -105,6 +140,29 @@ func (s *MainScreen) Build() fyne.CanvasObject {
 		nil, nil, nil,
 		content,
 	)
+}
+
+func (s *MainScreen) updateModeUI(mode string) {
+	switch mode {
+	case "move":
+		s.moveBtn.Importance = widget.HighImportance
+		s.dragBtn.Importance = widget.MediumImportance
+		s.scrollBtn.Importance = widget.MediumImportance
+		s.modeLabel.SetText("Mode: 🖱️ Move")
+	case "drag":
+		s.moveBtn.Importance = widget.MediumImportance
+		s.dragBtn.Importance = widget.HighImportance
+		s.scrollBtn.Importance = widget.MediumImportance
+		s.modeLabel.SetText("Mode: 👆 Select")
+	case "scroll":
+		s.moveBtn.Importance = widget.MediumImportance
+		s.dragBtn.Importance = widget.MediumImportance
+		s.scrollBtn.Importance = widget.HighImportance
+		s.modeLabel.SetText("Mode: 📜 Scroll")
+	}
+	s.moveBtn.Refresh()
+	s.dragBtn.Refresh()
+	s.scrollBtn.Refresh()
 }
 
 func (s *MainScreen) connectToServer() {

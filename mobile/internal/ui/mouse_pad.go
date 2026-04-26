@@ -2,8 +2,9 @@ package ui
 
 import (
 	"image/color"
-	"time"
 	"mobile/internal/models"
+	"time"
+
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/widget"
@@ -15,13 +16,18 @@ type MousePad struct {
 	last        fyne.Position
 	screenW     float64
 	screenH     float64
+	mode        string
 	tapTimer    *time.Timer
 	tapCount    int
-	isDragging  bool
 }
 
 func NewMousePad(sender Sender) *MousePad {
-	m := &MousePad{sender: sender, screenW: 1920, screenH: 1080}
+	m := &MousePad{
+		sender:  sender,
+		screenW: 1920,
+		screenH: 1080,
+		mode:    "move",
+	}
 	m.ExtendBaseWidget(m)
 	return m
 }
@@ -36,6 +42,10 @@ func (m *MousePad) SetSender(sender Sender) {
 	m.Refresh()
 }
 
+func (m *MousePad) SetMode(mode string) {
+	m.mode = mode
+}
+
 func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	if m.sender == nil {
 		return
@@ -44,8 +54,7 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	if m.last.X == 0 && m.last.Y == 0 {
 		m.last = e.Position
 		
-		if m.tapCount == 2 {
-			m.isDragging = true
+		if m.mode == "drag" {
 			m.sender.Send(models.WSMessage{Event: "down"})
 		}
 		return
@@ -65,13 +74,20 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	dx := deltaX * scale
 	dy := deltaY * scale
 
-	if m.tapCount >= 3 {
+	switch m.mode {
+	case "scroll":
 		m.sender.Send(models.WSMessage{
 			Event: "scroll",
 			X:     0,
 			Y:     dy / 5,
 		})
-	} else {
+	case "drag":
+		m.sender.Send(models.WSMessage{
+			Event: "move",
+			X:     dx,
+			Y:     dy,
+		})
+	default:
 		m.sender.Send(models.WSMessage{
 			Event: "move",
 			X:     dx,
@@ -83,9 +99,8 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 }
 
 func (m *MousePad) DragEnd() {
-	if m.isDragging {
+	if m.mode == "drag" {
 		m.sender.Send(models.WSMessage{Event: "up"})
-		m.isDragging = false
 	}
 	m.last = fyne.Position{X: 0, Y: 0}
 	m.tapCount = 0
@@ -98,19 +113,21 @@ func (m *MousePad) Tapped(e *fyne.PointEvent) {
 	if m.sender == nil {
 		return
 	}
-
-	m.tapCount++
 	
-	if m.tapTimer != nil {
-		m.tapTimer.Stop()
-	}
-	
-	m.tapTimer = time.AfterFunc(300*time.Millisecond, func() {
-		if m.tapCount == 1 {
-			m.sender.Send(models.WSMessage{Event: "click"})
+	if m.mode != "scroll" {
+		m.tapCount++
+		
+		if m.tapTimer != nil {
+			m.tapTimer.Stop()
 		}
-		m.tapCount = 0
-	})
+		
+		m.tapTimer = time.AfterFunc(300*time.Millisecond, func() {
+			if m.tapCount == 1 {
+				m.sender.Send(models.WSMessage{Event: "click"})
+			}
+			m.tapCount = 0
+		})
+	}
 }
 
 func (m *MousePad) Scrolled(e *fyne.ScrollEvent) {
