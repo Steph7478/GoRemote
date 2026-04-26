@@ -31,6 +31,6 @@ func MouseScroll(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	robot.Scroll(int(cmd.X))
+	robot.Scroll(int(cmd.X), int(cmd.Y))
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }

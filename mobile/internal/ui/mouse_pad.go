@@ -2,6 +2,7 @@ package ui
 
 import (
 	"image/color"
+	"time"
 	"mobile/internal/models"
 
 	"fyne.io/fyne/v2"
@@ -11,10 +12,12 @@ import (
 
 type MousePad struct {
 	widget.BaseWidget
-	sender  Sender
-	last    fyne.Position
-	screenW float64
-	screenH float64
+	sender      Sender
+	last        fyne.Position
+	screenW     float64
+	screenH     float64
+	lastTapTime time.Time
+	isDragging  bool
 }
 
 func NewMousePad(sender Sender) *MousePad {
@@ -39,6 +42,11 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 		return
 	}
 	if m.last.X == 0 && m.last.Y == 0 {
+		if time.Since(m.lastTapTime) < 300*time.Millisecond {
+			m.isDragging = true
+			m.sender.Send(models.WSMessage{Event: "down"})
+		}
+
 		m.last = e.Position
 		return
 	}
@@ -71,11 +79,16 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 }
 
 func (m *MousePad) DragEnd() {
+	if m.isDragging {
+		m.sender.Send(models.WSMessage{Event: "up"})
+		m.isDragging = false
+	}
 	m.last = fyne.Position{}
 }
 
 func (m *MousePad) Tapped(e *fyne.PointEvent) {
 	if m.sender != nil {
+		m.lastTapTime = time.Now()
 		m.sender.Send(models.WSMessage{Event: "click"})
 	}
 }

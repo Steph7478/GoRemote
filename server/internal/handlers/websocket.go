@@ -15,6 +15,12 @@ var wsHandlers = map[string]func(models.WSMessage){
 
 	"click": func(m models.WSMessage) { robot.Click() },
 
+	"scroll": func(m models.WSMessage) { robot.Scroll(int(m.X), int(m.Y)) },
+
+	"down": func(m models.WSMessage) { robot.MouseDown() },
+
+	"up": func(m models.WSMessage) { robot.MouseUp() },
+
 	"key": func(m models.WSMessage) { robot.Press(m.Key) },
 
 	"type": func(m models.WSMessage) { robot.Type(m.Text) },
