@@ -2,9 +2,8 @@ package ui
 
 import (
 	"image/color"
-	"mobile/internal/models"
 	"time"
-
+	"mobile/internal/models"
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/widget"
@@ -16,11 +15,9 @@ type MousePad struct {
 	last        fyne.Position
 	screenW     float64
 	screenH     float64
-	lastTapTime time.Time
+	tapTimer    *time.Timer
 	tapCount    int
 	isDragging  bool
-	isScrolling bool
-	isMoving    bool
 }
 
 func NewMousePad(sender Sender) *MousePad {
@@ -36,7 +33,6 @@ func (m *MousePad) SetScreenSize(w, h float64) {
 
 func (m *MousePad) SetSender(sender Sender) {
 	m.sender = sender
-	m.last = fyne.Position{}
 	m.Refresh()
 }
 
@@ -45,45 +41,35 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 		return
 	}
 
-	if !m.isMoving {
-		m.isMoving = true
+	if m.last.X == 0 && m.last.Y == 0 {
 		m.last = e.Position
-
-		if time.Since(m.lastTapTime) < 300*time.Millisecond {
-			if m.tapCount == 1 {
-				m.isDragging = true
-				m.sender.Send(models.WSMessage{Event: "down"})
-			} else if m.tapCount >= 2 {
-				m.isScrolling = true
-			}
+		
+		if m.tapCount == 2 {
+			m.isDragging = true
+			m.sender.Send(models.WSMessage{Event: "down"})
 		}
-
 		return
 	}
 
 	padW := float64(m.Size().Width)
 	padH := float64(m.Size().Height)
-
+	
 	if padW == 0 || padH == 0 {
 		return
 	}
 
-	deltaPadX := float64(e.Position.X - m.last.X)
-	deltaPadY := float64(e.Position.Y - m.last.Y)
+	deltaX := float64(e.Position.X - m.last.X)
+	deltaY := float64(e.Position.Y - m.last.Y)
+	
+	scale := (m.screenW/padW + m.screenH/padH) / 2
+	dx := deltaX * scale
+	dy := deltaY * scale
 
-	scaleX := m.screenW / padW
-	scaleY := m.screenH / padH
-
-	scale := (scaleX + scaleY) / 2
-
-	dx := deltaPadX * scale
-	dy := deltaPadY * scale
-
-	if m.isScrolling {
+	if m.tapCount >= 3 {
 		m.sender.Send(models.WSMessage{
 			Event: "scroll",
 			X:     0,
-			Y:     deltaPadY / 5.0,
+			Y:     dy / 5,
 		})
 	} else {
 		m.sender.Send(models.WSMessage{
@@ -101,24 +87,30 @@ func (m *MousePad) DragEnd() {
 		m.sender.Send(models.WSMessage{Event: "up"})
 		m.isDragging = false
 	}
-	m.isScrolling = false
-	m.isMoving = false
-	m.last = fyne.Position{}
+	m.last = fyne.Position{X: 0, Y: 0}
 	m.tapCount = 0
+	if m.tapTimer != nil {
+		m.tapTimer.Stop()
+	}
 }
 
 func (m *MousePad) Tapped(e *fyne.PointEvent) {
 	if m.sender == nil {
 		return
 	}
-	now := time.Now()
-	if now.Sub(m.lastTapTime) < 300*time.Millisecond {
-		m.tapCount++
-	} else {
-		m.tapCount = 1
+
+	m.tapCount++
+	
+	if m.tapTimer != nil {
+		m.tapTimer.Stop()
 	}
-	m.lastTapTime = now
-	m.sender.Send(models.WSMessage{Event: "click"})
+	
+	m.tapTimer = time.AfterFunc(300*time.Millisecond, func() {
+		if m.tapCount == 1 {
+			m.sender.Send(models.WSMessage{Event: "click"})
+		}
+		m.tapCount = 0
+	})
 }
 
 func (m *MousePad) Scrolled(e *fyne.ScrollEvent) {
@@ -147,7 +139,7 @@ func (r *mousePadRenderer) Layout(s fyne.Size) {
 }
 
 func (r *mousePadRenderer) MinSize() fyne.Size {
-	return fyne.NewSize(300, 300)
+	return fyne.NewSize(200, 200)
 }
 
 func (r *mousePadRenderer) Refresh() {
