@@ -2,26 +2,26 @@
 
 go build -o RemoteControl main.go
 
+cat > RemoteControl.desktop << 'EOF'
+[Desktop Entry]
+Name=Remote Control
+Comment=Remote Control Application
+Exec=$PWD/RemoteControl
+Icon=$PWD/assets/icon.png
+Terminal=false
+Type=Application
+Categories=Network;
+EOF
+
 cat > install.sh << 'EOF'
 #!/bin/bash
-echo "Configuring firewall for Remote Control..."
-sudo ufw allow 8080/tcp
-echo "Port 8080 opened in firewall!"
-echo ""
-echo "To run: ./RemoteControl"
+if [ "$EUID" -ne 0 ]; then 
+    exec sudo "$0" "$@"
+fi
+ufw allow 8080/tcp
+echo "✅ Firewall rule added!"
 EOF
-chmod +x install.sh
 
-cat > uninstall.sh << 'EOF'
-#!/bin/bash
-echo "Removing firewall rule..."
-sudo ufw delete allow 8080/tcp
-echo "Firewall rule removed!"
-echo ""
-echo "You can now delete the RemoteControl file"
-EOF
-chmod +x uninstall.sh
+chmod +x install.sh RemoteControl
 
-chmod +x RemoteControl
-
-echo "Build complete! Output: RemoteControl"
+echo "Build complete!"
