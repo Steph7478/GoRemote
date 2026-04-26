@@ -1,8 +1,6 @@
 package config
 
 import (
-	"fmt"
-	"server/internal/utils"
 	"time"
 
 	"github.com/getlantern/systray"
@@ -11,18 +9,13 @@ import (
 var discoveryRunning, serverRunning = true, false
 
 func Tray() {
-	ip := utils.GetLocalIP()
-
 	iconData := GetIcon()
 	if len(iconData) > 0 {
 		systray.SetIcon(iconData)
 	}
 
 	systray.SetTitle("Remote Control")
-	systray.SetTooltip("Remote Control - Port: CLOSED")
-
-	ipItem := systray.AddMenuItem(fmt.Sprintf("📡 %s:8080", ip), "")
-	ipItem.Disable()
+	systray.SetTooltip("Port: CLOSED")
 
 	portItem := systray.AddMenuItem(portText(), "")
 	portItem.Disable()
@@ -73,8 +66,8 @@ func portText() string {
 
 func updateTooltip() {
 	if serverRunning {
-		systray.SetTooltip("✅ Remote Control - Port: OPEN")
+		systray.SetTooltip("✅ Port: OPEN")
 	} else {
-		systray.SetTooltip("🔒 Remote Control - Port: CLOSED")
+		systray.SetTooltip("🔒 Port: CLOSED")
 	}
 }
