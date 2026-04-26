@@ -50,21 +50,45 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 		return
 	}
 
-	dx := (float64(e.Position.X-m.last.X) / padW) * m.screenW
-	dy := (float64(e.Position.Y-m.last.Y) / padH) * m.screenH
+	deltaPadX := float64(e.Position.X - m.last.X)
+	deltaPadY := float64(e.Position.Y - m.last.Y)
 
-	if dx != 0 || dy != 0 {
-		m.sender.Send(models.WSMessage{Event: "move", X: dx, Y: dy})
-	}
+	scaleX := m.screenW / padW
+	scaleY := m.screenH / padH
+
+	scale := (scaleX + scaleY) / 2
+
+	dx := deltaPadX * scale
+	dy := deltaPadY * scale
+
+	m.sender.Send(models.WSMessage{
+		Event: "move",
+		X:     dx,
+		Y:     dy,
+	})
+
 	m.last = e.Position
 }
 
-func (m *MousePad) DragEnd() { m.last = fyne.Position{} }
+func (m *MousePad) DragEnd() {
+	m.last = fyne.Position{}
+}
 
-func (m *MousePad) Tapped(*fyne.PointEvent) {
+func (m *MousePad) Tapped(e *fyne.PointEvent) {
 	if m.sender != nil {
 		m.sender.Send(models.WSMessage{Event: "click"})
 	}
+}
+
+func (m *MousePad) Scrolled(e *fyne.ScrollEvent) {
+	if m.sender == nil {
+		return
+	}
+	m.sender.Send(models.WSMessage{
+		Event: "scroll",
+		X:     float64(e.Scrolled.DX),
+		Y:     float64(e.Scrolled.DY),
+	})
 }
 
 func (m *MousePad) CreateRenderer() fyne.WidgetRenderer {
@@ -77,8 +101,14 @@ type mousePadRenderer struct {
 	m    *MousePad
 }
 
-func (r *mousePadRenderer) Layout(s fyne.Size) { r.rect.Resize(s) }
-func (r *mousePadRenderer) MinSize() fyne.Size { return fyne.NewSize(300, 300) }
+func (r *mousePadRenderer) Layout(s fyne.Size) {
+	r.rect.Resize(s)
+}
+
+func (r *mousePadRenderer) MinSize() fyne.Size {
+	return fyne.NewSize(300, 300)
+}
+
 func (r *mousePadRenderer) Refresh() {
 	if r.m.sender == nil {
 		r.rect.FillColor = color.NRGBA{80, 80, 80, 255}
@@ -87,5 +117,9 @@ func (r *mousePadRenderer) Refresh() {
 	}
 	r.rect.Refresh()
 }
-func (r *mousePadRenderer) Objects() []fyne.CanvasObject { return []fyne.CanvasObject{r.rect} }
-func (r *mousePadRenderer) Destroy()                     {}
+
+func (r *mousePadRenderer) Objects() []fyne.CanvasObject {
+	return []fyne.CanvasObject{r.rect}
+}
+
+func (r *mousePadRenderer) Destroy() {}
