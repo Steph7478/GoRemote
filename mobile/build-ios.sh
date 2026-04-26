@@ -1,16 +1,18 @@
 #!/bin/bash
 
 echo "🍎 Building iOS app..."
-echo "====================="
-echo ""
+echo "======================"
 
 go mod tidy
 go install fyne.io/tools/cmd/fyne@latest
-~/go/bin/fyne package -os ios/arm64 \
+
+~/go/bin/fyne package -os ios \
     -app-id com.remotecontrol.app \
     -icon assets/icon.ico \
     -name "Remote Control"
 
-echo ""
-echo "✅ Done!"
-ls -lh *.app
+mkdir Payload
+cp -r RemoteControl.app Payload/
+zip -r RemoteControl.ipa Payload
+
+echo "✅ Done! Output: RemoteControl.ipa"
