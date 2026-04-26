@@ -40,4 +40,4 @@ go.work.sum
 # Temp
 tmp/
 temp/
-*rules
+AGENTS.md
