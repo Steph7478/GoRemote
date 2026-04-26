@@ -2,8 +2,8 @@ package ui
 
 import (
 	"image/color"
-	"time"
 	"mobile/internal/models"
+	"time"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -17,7 +17,10 @@ type MousePad struct {
 	screenW     float64
 	screenH     float64
 	lastTapTime time.Time
+	tapCount    int
 	isDragging  bool
+	isScrolling bool
+	isMoving    bool
 }
 
 func NewMousePad(sender Sender) *MousePad {
@@ -41,13 +44,20 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	if m.sender == nil {
 		return
 	}
-	if m.last.X == 0 && m.last.Y == 0 {
+
+	if !m.isMoving {
+		m.isMoving = true
+		m.last = e.Position
+
 		if time.Since(m.lastTapTime) < 300*time.Millisecond {
-			m.isDragging = true
-			m.sender.Send(models.WSMessage{Event: "down"})
+			if m.tapCount == 1 {
+				m.isDragging = true
+				m.sender.Send(models.WSMessage{Event: "down"})
+			} else if m.tapCount >= 2 {
+				m.isScrolling = true
+			}
 		}
 
-		m.last = e.Position
 		return
 	}
 
@@ -69,11 +79,19 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	dx := deltaPadX * scale
 	dy := deltaPadY * scale
 
-	m.sender.Send(models.WSMessage{
-		Event: "move",
-		X:     dx,
-		Y:     dy,
-	})
+	if m.isScrolling {
+		m.sender.Send(models.WSMessage{
+			Event: "scroll",
+			X:     0,
+			Y:     deltaPadY / 5.0,
+		})
+	} else {
+		m.sender.Send(models.WSMessage{
+			Event: "move",
+			X:     dx,
+			Y:     dy,
+		})
+	}
 
 	m.last = e.Position
 }
@@ -83,14 +101,24 @@ func (m *MousePad) DragEnd() {
 		m.sender.Send(models.WSMessage{Event: "up"})
 		m.isDragging = false
 	}
+	m.isScrolling = false
+	m.isMoving = false
 	m.last = fyne.Position{}
+	m.tapCount = 0
 }
 
 func (m *MousePad) Tapped(e *fyne.PointEvent) {
-	if m.sender != nil {
-		m.lastTapTime = time.Now()
-		m.sender.Send(models.WSMessage{Event: "click"})
+	if m.sender == nil {
+		return
 	}
+	now := time.Now()
+	if now.Sub(m.lastTapTime) < 300*time.Millisecond {
+		m.tapCount++
+	} else {
+		m.tapCount = 1
+	}
+	m.lastTapTime = now
+	m.sender.Send(models.WSMessage{Event: "click"})
 }
 
 func (m *MousePad) Scrolled(e *fyne.ScrollEvent) {
