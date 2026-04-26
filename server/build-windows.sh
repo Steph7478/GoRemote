@@ -16,8 +16,19 @@ if %errorLevel% neq 0 (
 )
 
 echo Installing Remote Control...
-netsh advfirewall firewall add rule name="Remote Control" dir=in action=allow protocol=TCP localport=8080
-echo Firewall rule added for port 8080!
+
+:: Get the full path where the EXE will be
+set "APP_PATH=%ProgramFiles%\RemoteControl\RemoteControl.exe"
+
+:: Create rules for both port AND program
+echo Adding firewall rule for port 8080...
+netsh advfirewall firewall add rule name="Remote Control - Port" dir=in action=allow protocol=TCP localport=8080
+
+echo Adding firewall rule for the application...
+netsh advfirewall firewall add rule name="Remote Control - App" dir=in action=allow program="%APP_PATH%" enable=yes
+
+echo.
+echo ✅ Firewall rules added successfully!
 echo.
 echo Installation complete!
 timeout /t 3
@@ -33,10 +44,15 @@ if %errorLevel% neq 0 (
     exit /b
 )
 
-echo Removing Remote Control firewall rule...
-netsh advfirewall firewall delete rule name="Remote Control"
-echo Firewall rule removed!
+echo Removing Remote Control firewall rules...
+
+netsh advfirewall firewall delete rule name="Remote Control - Port"
+netsh advfirewall firewall delete rule name="Remote Control - App"
+
+echo ✅ Firewall rules removed!
 echo.
 echo Uninstallation complete!
 timeout /t 3
 EOF
+
+rm -f rcedit.exe

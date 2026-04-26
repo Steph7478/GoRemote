@@ -10,13 +10,18 @@ import (
 )
 
 var discoveryRunning, serverRunning = true, false
+var iconData []byte
 
 func Tray() {
 	ip := utils.GetLocalIP()
 
-	if icon, _ := os.ReadFile("assets/icon.ico"); icon != nil {
-		systray.SetIcon(icon)
-	}
+	if len(iconData) > 0 {
+        systray.SetIcon(iconData)
+    } else {
+        if icon, err := os.ReadFile("assets/icon.ico"); err == nil {
+            systray.SetIcon(icon)
+        }
+    }
 
 	systray.SetTitle("Remote Control")
 	updateTooltip()
