@@ -1,6 +1,6 @@
 #!/bin/bash
 
-go build -o RemoteControl main.go
+go build -o RemoteControl .
 
 CURRENT_DIR=$(pwd)
 
@@ -9,7 +9,7 @@ cat > RemoteControl.desktop << EOF
 Name=Remote Control
 Comment=Remote Control Application
 Exec=$CURRENT_DIR/RemoteControl
-Icon=$CURRENT_DIR/assets/icon.png
+Icon=$CURRENT_DIR/internal/config/assets/icon.png
 Terminal=false
 Type=Application
 Categories=Network;
