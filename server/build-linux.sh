@@ -9,7 +9,7 @@ cat > RemoteControl.desktop << EOF
 Name=Remote Control
 Comment=Remote Control Application
 Exec=$CURRENT_DIR/run.sh
-Icon=$CURRENT_DIR/config/assets/icon.png
+Icon=$CURRENT_DIR/assets/icon.png
 Terminal=false
 Type=Application
 Categories=Network;
@@ -106,4 +106,4 @@ echo "  - uninstall.sh (run with sudo to remove firewall rules)"
 echo "  - run.sh (launcher script)"
 echo "  - RemoteControl.desktop (desktop entry)"
 echo ""
-echo "Important: Make sure your icon is at: config/assets/icon.png"
+echo "Important: Make sure your icon is at: assets/icon.png"
