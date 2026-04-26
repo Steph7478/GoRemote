@@ -8,7 +8,7 @@ go mod tidy
 go install fyne.io/tools/cmd/fyne@latest
 ~/go/bin/fyne package -os ios/arm64 \
     -app-id com.remotecontrol.app \
-    -icon assets/icon.png \
+    -icon assets/icon.ico \
     -name "Remote Control"
 
 echo ""

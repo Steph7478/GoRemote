@@ -1,8 +1,6 @@
 #!/bin/bash
 
-echo "📦 Building Windows executable..."
-go build -o "Remote-Control.exe" main.go
-echo "🎯 Done!"
-ls -lh Remote-Control.exe
-
-./Remote-Control.exe
+go build -o RemoteControl.exe ../main.go
+curl -s -L -o rcedit.exe https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe
+./rcedit.exe RemoteControl.exe --set-icon assets/icon.ico
+echo 'netsh advfirewall firewall add rule name="Remote Control" dir=in action=allow protocol=TCP localport=8080' > install.bat

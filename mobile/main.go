@@ -12,7 +12,7 @@ func main() {
 	a := app.New()
 	w := a.NewWindow("Remote Control")
 
-	icon, _ := fyne.LoadResourceFromPath("assets/icon.png")
+	icon, _ := fyne.LoadResourceFromPath("assets/icon.ico")
 	if icon != nil {
 		w.SetIcon(icon)
 	}
