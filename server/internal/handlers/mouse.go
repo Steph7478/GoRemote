@@ -2,13 +2,10 @@ package handlers
 
 import (
 	"net/http"
-	"server/internal/controller"
 	"server/internal/models"
 
 	"github.com/gin-gonic/gin"
 )
-
-var robot = controller.New()
 
 func MouseMove(c *gin.Context) {
 	var cmd models.Command
