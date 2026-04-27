@@ -19,17 +19,21 @@ func NewKeyboard(sender Sender) *Keyboard {
 	k.ExtendBaseWidget(k)
 	k.SetPlaceHolder("Type here, send to PC")
 
-	if sender == nil {
-		k.Disable()
-	}
-
 	k.BtnDelete = widget.NewButton("Del", func() {
 		k.key("backspace")
 	})
+	k.BtnDelete.Disable()
 
 	k.BtnEnter = widget.NewButton("Enter", func() {
 		k.enter()
 	})
+	k.BtnEnter.Disable()
+
+	if sender != nil {
+		k.Enable()
+	} else {
+		k.Disable()
+	}
 
 	return k
 }
@@ -42,14 +46,13 @@ func (k *Keyboard) TypedKey(ev *fyne.KeyEvent) {
 	switch ev.Name {
 	case fyne.KeyReturn, fyne.KeyEnter:
 		k.enter()
-
 	default:
 		k.Entry.TypedKey(ev)
 	}
 }
 
 func (k *Keyboard) enter() {
-	if k.sender == nil {
+	if k.sender == nil || k.Disabled() {
 		return
 	}
 
@@ -66,12 +69,28 @@ func (k *Keyboard) enter() {
 }
 
 func (k *Keyboard) key(key string) {
-	if k.sender == nil {
+	if k.sender == nil || k.Disabled() {
 		return
 	}
-
 	k.sender.Send(models.WSMessage{
 		Event: "key",
 		Key:   key,
 	})
+}
+func (k *Keyboard) Disable() {
+	k.Entry.Disable()
+	if k.BtnDelete != nil {
+		k.BtnDelete.Disable()
+	}
+	if k.BtnEnter != nil {
+		k.BtnEnter.Disable()
+	}
+}
+
+func (k *Keyboard) Enable() {
+	k.Entry.Enable()
+	if k.sender != nil && k.BtnDelete != nil && k.BtnEnter != nil {
+		k.BtnDelete.Enable()
+		k.BtnEnter.Enable()
+	}
 }

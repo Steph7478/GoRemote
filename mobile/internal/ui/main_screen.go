@@ -22,105 +22,109 @@ type MainScreen struct {
 	keyboard   *Keyboard
 	speedValue float64
 	speedLabel *widget.Label
-	moveBtn    *widget.Button
-	dragBtn    *widget.Button
-	scrollBtn  *widget.Button
-	leftBtn    *widget.Button
-	rightBtn   *widget.Button
+
+	modeButtons  map[string]*widget.Button
+	clickButtons map[string]*widget.Button
 }
 
 func NewMainScreen() *MainScreen {
 	savedSpeed := fyne.CurrentApp().Preferences().FloatWithFallback("mouseSpeed", 1.0)
-	return &MainScreen{
-		mouse:      NewMousePad(nil),
-		keyboard:   NewKeyboard(nil),
-		speedValue: savedSpeed,
+
+	s := &MainScreen{
+		mouse:        NewMousePad(nil),
+		keyboard:     NewKeyboard(nil),
+		speedValue:   savedSpeed,
+		modeButtons:  make(map[string]*widget.Button),
+		clickButtons: make(map[string]*widget.Button),
+	}
+
+	s.initButtons()
+	return s
+}
+
+func (s *MainScreen) initButtons() {
+	s.modeButtons["move"] = s.createModeButton("Move", "move")
+	s.modeButtons["drag"] = s.createModeButton("Select", "drag")
+	s.modeButtons["scroll"] = s.createModeButton("Scroll", "scroll")
+
+	s.clickButtons["left"] = s.createClickButton("Left Click", "left_click")
+	s.clickButtons["right"] = s.createClickButton("Right Click", "right_click")
+
+	s.connect = widget.NewButton("Connect", s.connectToServer)
+	s.disconnect = widget.NewButton("Disconnect", s.disconnectFromServer)
+	s.disconnect.Hide()
+}
+
+func (s *MainScreen) createModeButton(label, mode string) *widget.Button {
+	btn := widget.NewButton(label, func() {
+		s.mouse.SetMode(mode)
+		s.highlightModeButton(mode)
+	})
+	btn.Disable()
+	return btn
+}
+
+func (s *MainScreen) createClickButton(label, event string) *widget.Button {
+	btn := widget.NewButton(label, func() {
+		if s.c != nil {
+			s.c.Send(models.WSMessage{Event: event})
+		}
+	})
+	btn.Disable()
+	return btn
+}
+
+func (s *MainScreen) highlightModeButton(activeMode string) {
+	for mode, btn := range s.modeButtons {
+		if mode == activeMode {
+			btn.Importance = widget.HighImportance
+		} else {
+			btn.Importance = widget.MediumImportance
+		}
+		btn.Refresh()
+	}
+}
+
+func (s *MainScreen) setButtonsEnabled(enabled bool) {
+	enableFunc := func(btn *widget.Button) {
+		if enabled {
+			btn.Enable()
+		} else {
+			btn.Disable()
+		}
+	}
+
+	for _, btn := range s.modeButtons {
+		enableFunc(btn)
+	}
+	for _, btn := range s.clickButtons {
+		enableFunc(btn)
 	}
 }
 
 func (s *MainScreen) Build() fyne.CanvasObject {
 	s.status = widget.NewLabel("🔴")
-	s.connect = widget.NewButton("Connect", s.connectToServer)
-	s.disconnect = widget.NewButton("Disconnect", s.disconnectFromServer)
-	s.disconnect.Hide()
-
-	s.moveBtn = widget.NewButton("🖱️ Move", func() {
-		s.mouse.SetMode("move")
-		s.updateButtons("move")
-	})
-	s.moveBtn.Importance = widget.HighImportance
-	s.moveBtn.Disable()
-
-	s.dragBtn = widget.NewButton("👆 Select", func() {
-		s.mouse.SetMode("drag")
-		s.updateButtons("drag")
-	})
-	s.dragBtn.Disable()
-
-	s.scrollBtn = widget.NewButton("📜 Scroll", func() {
-		s.mouse.SetMode("scroll")
-		s.updateButtons("scroll")
-	})
-	s.scrollBtn.Disable()
-
-	s.leftBtn = widget.NewButton("Left Click", func() {
-		if s.c != nil {
-			s.c.Send(models.WSMessage{Event: "left_click"})
-		}
-	})
-	s.leftBtn.Disable()
-
-	s.rightBtn = widget.NewButton("Right Click", func() {
-		if s.c != nil {
-			s.c.Send(models.WSMessage{Event: "right_click"})
-		}
-	})
-	s.rightBtn.Disable()
-
-	s.updateButtons("move")
-
-	modeButtons := container.NewGridWithColumns(3, s.moveBtn, s.dragBtn, s.scrollBtn)
-	clickButtons := container.NewGridWithColumns(2, s.leftBtn, s.rightBtn)
 
 	s.speedLabel = widget.NewLabelWithStyle(fmt.Sprintf("%.1f", s.speedValue), fyne.TextAlignCenter, fyne.TextStyle{Bold: true})
+	speedControls := s.buildSpeedControls()
 
-	btnMinus := widget.NewButton("−", func() {
-		if s.speedValue > 0.1 {
-			s.speedValue -= 0.1
-			s.speedLabel.SetText(fmt.Sprintf("%.1f", s.speedValue))
-			fyne.CurrentApp().Preferences().SetFloat("mouseSpeed", s.speedValue)
-			if s.c != nil {
-				s.c.SetSensitivity(s.speedValue)
-			}
-		}
-	})
-	btnMinus.Importance = widget.MediumImportance
+	modeGrid := container.NewGridWithColumns(3,
+		s.modeButtons["move"], s.modeButtons["drag"], s.modeButtons["scroll"])
+	clickGrid := container.NewGridWithColumns(2,
+		s.clickButtons["left"], s.clickButtons["right"])
 
-	btnPlus := widget.NewButton("+", func() {
-		if s.speedValue < 5.0 {
-			s.speedValue += 0.1
-			s.speedLabel.SetText(fmt.Sprintf("%.1f", s.speedValue))
-			fyne.CurrentApp().Preferences().SetFloat("mouseSpeed", s.speedValue)
-			if s.c != nil {
-				s.c.SetSensitivity(s.speedValue)
-			}
-		}
-	})
-	btnPlus.Importance = widget.MediumImportance
-
-	speedContainer := container.NewHBox(
-		widget.NewLabelWithStyle("Speed", fyne.TextAlignCenter, fyne.TextStyle{}),
-		btnMinus,
-		s.speedLabel,
-		btnPlus,
+	topBar := container.NewHBox(
+		s.connect, s.disconnect, layout.NewSpacer(),
+		speedControls, layout.NewSpacer(),
+		s.status,
 	)
 
-	topBar := container.NewHBox(s.connect, s.disconnect, layout.NewSpacer(), speedContainer, layout.NewSpacer(), s.status)
-
-	keyboardRow := container.NewBorder(nil, nil, nil, container.NewHBox(s.keyboard.BtnDelete, s.keyboard.BtnEnter), s.keyboard)
+	keyboardRow := container.NewBorder(nil, nil, nil,
+		container.NewHBox(s.keyboard.BtnDelete, s.keyboard.BtnEnter),
+		s.keyboard)
 
 	content := container.NewBorder(
-		container.NewVBox(keyboardRow, widget.NewSeparator(), modeButtons, clickButtons),
+		container.NewVBox(keyboardRow, widget.NewSeparator(), layout.NewSpacer(), modeGrid, clickGrid),
 		nil, nil, nil,
 		s.mouse,
 	)
@@ -128,27 +132,30 @@ func (s *MainScreen) Build() fyne.CanvasObject {
 	return container.NewBorder(container.NewVBox(topBar, widget.NewSeparator()), nil, nil, nil, content)
 }
 
-func (s *MainScreen) updateButtons(mode string) {
-	if s.moveBtn == nil || s.dragBtn == nil || s.scrollBtn == nil {
-		return
+func (s *MainScreen) buildSpeedControls() *fyne.Container {
+	adjustSpeed := func(delta float64, min, max float64) {
+		newSpeed := s.speedValue + delta
+		if newSpeed >= min && newSpeed <= max {
+			s.speedValue = newSpeed
+			s.speedLabel.SetText(fmt.Sprintf("%.1f", s.speedValue))
+			fyne.CurrentApp().Preferences().SetFloat("mouseSpeed", s.speedValue)
+			if s.c != nil {
+				s.c.SetSensitivity(s.speedValue)
+			}
+		}
 	}
-	switch mode {
-	case "move":
-		s.moveBtn.Importance = widget.HighImportance
-		s.dragBtn.Importance = widget.MediumImportance
-		s.scrollBtn.Importance = widget.MediumImportance
-	case "drag":
-		s.moveBtn.Importance = widget.MediumImportance
-		s.dragBtn.Importance = widget.HighImportance
-		s.scrollBtn.Importance = widget.MediumImportance
-	case "scroll":
-		s.moveBtn.Importance = widget.MediumImportance
-		s.dragBtn.Importance = widget.MediumImportance
-		s.scrollBtn.Importance = widget.HighImportance
-	}
-	s.moveBtn.Refresh()
-	s.dragBtn.Refresh()
-	s.scrollBtn.Refresh()
+
+	btnMinus := widget.NewButton("−", func() { adjustSpeed(-0.1, 0.1, 5.0) })
+	btnPlus := widget.NewButton("+", func() { adjustSpeed(0.1, 0.1, 5.0) })
+	btnMinus.Importance = widget.MediumImportance
+	btnPlus.Importance = widget.MediumImportance
+
+	return container.NewHBox(
+		widget.NewLabel("Speed"),
+		btnMinus,
+		s.speedLabel,
+		btnPlus,
+	)
 }
 
 func (s *MainScreen) connectToServer() {
@@ -163,22 +170,21 @@ func (s *MainScreen) connectToServer() {
 				s.connect.Enable()
 				return
 			}
+
 			c := client.NewClient(ip)
 			if err := c.Connect(); err != nil {
 				s.status.SetText("❌")
 				s.connect.Enable()
 				return
 			}
+
 			s.c = c
 			s.mouse.sender = c
 			s.keyboard.sender = c
 			s.keyboard.Enable()
-			s.leftBtn.Enable()
-			s.rightBtn.Enable()
-			s.moveBtn.Enable()
-			s.dragBtn.Enable()
-			s.scrollBtn.Enable()
+			s.setButtonsEnabled(true)
 			c.SetSensitivity(s.speedValue)
+
 			s.status.SetText("✅")
 			s.connect.Hide()
 			s.disconnect.Show()
@@ -191,15 +197,13 @@ func (s *MainScreen) disconnectFromServer() {
 		s.c.Close()
 		s.c = nil
 	}
+
 	s.mouse.sender = nil
 	s.keyboard.sender = nil
 	s.keyboard.Disable()
-	s.leftBtn.Disable()
-	s.rightBtn.Disable()
-	s.moveBtn.Disable()
-	s.dragBtn.Disable()
-	s.scrollBtn.Disable()
 	s.keyboard.SetText("")
+	s.setButtonsEnabled(false)
+
 	s.status.SetText("🔴")
 	s.disconnect.Hide()
 	s.connect.Show()
