@@ -12,20 +12,16 @@ jobs:
       - name: Build
         run: |
           cd server
-          bash build-windows.sh
+          go build -o RemoteControl.exe .
       
       - uses: actions/upload-artifact@v4
         with:
           name: Remote-Control-Windows
-          path: |
-            server/RemoteControl.exe
-            server/install.bat
-            server/uninstall.bat
-      
+          path: server/RemoteControl.exe
       - name: Zip for release
         run: |
           cd server
-          Compress-Archive -Path RemoteControl.exe,install.bat,uninstall.bat -DestinationPath RemoteControl-Windows.zip
+          Compress-Archive -Path RemoteControl.exe -DestinationPath RemoteControl-Windows.zip
       
       - if: startsWith(github.ref, 'refs/tags/')
         name: Create Release
