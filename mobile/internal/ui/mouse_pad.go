@@ -53,7 +53,6 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 
 	if m.last.X == 0 && m.last.Y == 0 {
 		m.last = e.Position
-
 		if m.mode == "drag" {
 			m.sender.Send(models.WSMessage{Event: "down"})
 		}
@@ -62,7 +61,6 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 
 	padW := float64(m.Size().Width)
 	padH := float64(m.Size().Height)
-
 	if padW == 0 || padH == 0 {
 		return
 	}
@@ -70,28 +68,18 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	deltaX := float64(e.Position.X - m.last.X)
 	deltaY := float64(e.Position.Y - m.last.Y)
 
-	scale := (m.screenW/padW + m.screenH/padH) / 2
-	dx := deltaX * scale
-	dy := deltaY * scale
-
-	switch m.mode {
-	case "scroll":
+	if m.mode == "scroll" {
 		m.sender.Send(models.WSMessage{
 			Event: "scroll",
-			X:     0,
-			Y:     dy / 5,
+			X:     deltaX,
+			Y:     deltaY,
 		})
-	case "drag":
+	} else {
+		scale := (m.screenW/padW + m.screenH/padH) / 2
 		m.sender.Send(models.WSMessage{
 			Event: "move",
-			X:     dx,
-			Y:     dy,
-		})
-	default:
-		m.sender.Send(models.WSMessage{
-			Event: "move",
-			X:     dx,
-			Y:     dy,
+			X:     deltaX * scale,
+			Y:     deltaY * scale,
 		})
 	}
 
@@ -99,7 +87,7 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 }
 
 func (m *MousePad) DragEnd() {
-	if m.mode == "drag" {
+	if m.mode == "drag" && m.sender != nil {
 		m.sender.Send(models.WSMessage{Event: "up"})
 	}
 	m.last = fyne.Position{X: 0, Y: 0}
@@ -124,7 +112,7 @@ func (m *MousePad) TappedSecondary(e *fyne.PointEvent) {
 }
 
 func (m *MousePad) Scrolled(e *fyne.ScrollEvent) {
-	if m.sender == nil {
+	if m.sender == nil || m.mode != "scroll" {
 		return
 	}
 	m.sender.Send(models.WSMessage{
