@@ -26,6 +26,20 @@ jobs:
         with:
           name: Remote-Control-Linux
           path: server/RemoteControl
+      - name: Zip for release
+        run: |
+          cd server
+          zip RemoteControl-Linux.zip RemoteControl
+      
+      - if: startsWith(github.ref, 'refs/tags/')
+        name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: server/RemoteControl-Linux.zip
+          generate_release_notes: true
 name: Build Linux Executable
 'on':
+  push:
+    tags:
+      - linux-v*
   workflow_dispatch: 
