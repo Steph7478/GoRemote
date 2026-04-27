@@ -12,13 +12,13 @@ import (
 
 type MousePad struct {
 	widget.BaseWidget
-	sender      Sender
-	last        fyne.Position
-	screenW     float64
-	screenH     float64
-	mode        string
-	tapTimer    *time.Timer
-	tapCount    int
+	sender   Sender
+	last     fyne.Position
+	screenW  float64
+	screenH  float64
+	mode     string
+	tapTimer *time.Timer
+	tapCount int
 }
 
 func NewMousePad(sender Sender) *MousePad {
@@ -71,8 +71,8 @@ func (m *MousePad) Dragged(e *fyne.DragEvent) {
 	if m.mode == "scroll" {
 		m.sender.Send(models.WSMessage{
 			Event: "scroll",
-			X:     deltaX,
-			Y:     deltaY,
+			X:     deltaX * 0.5,
+			Y:     deltaY * 0.5,
 		})
 	} else {
 		scale := (m.screenW/padW + m.screenH/padH) / 2
@@ -109,17 +109,6 @@ func (m *MousePad) TappedSecondary(e *fyne.PointEvent) {
 		return
 	}
 	m.sender.Send(models.WSMessage{Event: "right_click"})
-}
-
-func (m *MousePad) Scrolled(e *fyne.ScrollEvent) {
-	if m.sender == nil || m.mode != "scroll" {
-		return
-	}
-	m.sender.Send(models.WSMessage{
-		Event: "scroll",
-		X:     float64(e.Scrolled.DX),
-		Y:     float64(e.Scrolled.DY),
-	})
 }
 
 func (m *MousePad) CreateRenderer() fyne.WidgetRenderer {
